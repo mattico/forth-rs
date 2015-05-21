@@ -5,5 +5,6 @@
 - [ ] Types (reference, double, string)
 - [ ] Indirection
 - [ ] Refactor into modules
-- [ ] Error handling
+- [x] Error handling
+	- [ ] *Better* Error Handling
 - [ ] Embeddable Lib
