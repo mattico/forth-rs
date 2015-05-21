@@ -319,6 +319,14 @@ impl Interpreter {
 				})),
 			));
 
+		let square = {
+			let mut s = Statement::new();
+			s.push_back(Op::Word(dict.get("dup").unwrap().clone()));
+			s.push_back(Op::Word(dict.get("*").unwrap().clone()));
+			Code::Forth(s)
+		};
+		dict.insert_entry(Entry::new("square", square));
+
 		Interpreter {
 			dictionary: dict,
 		}
@@ -340,7 +348,7 @@ impl Interpreter {
 	}
 
 	fn exec(&mut self, statement: &str) {
-		let mut statement = self.lex(statement);
+		let statement = self.lex(statement);
 		statement.run(self, &mut Stack::new());
 	}
 }
