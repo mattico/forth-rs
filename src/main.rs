@@ -1,15 +1,14 @@
 #![feature(convert, collections, unicode)]
 #![allow(unused_variables)]
 
-extern crate rustc_unicode;
-
 use std::collections::{HashMap, VecDeque};
 use std::hash::{Hash, Hasher};
 use std::io;
 use std::io::prelude::*;
 use std::rc::Rc;
 use std::fmt;
-use std::str::FromStr;
+
+extern crate rustc_unicode;
 use rustc_unicode::str::UnicodeStr;
 
 type Int = i32;
@@ -97,26 +96,18 @@ trait StatementExt {
 
 impl StatementExt for Statement {
 	fn run(&self, interp: &mut Interpreter) {
-		match interp.mode {
-			InterpreterMode::Normal => {
-				let mut stack = Stack::new();
-				for word in self {
-					match word {
-						&Op::Number(n) => {
-							stack.push(n);
-						},
-						&Op::Word(ref w) => {
-							let code = interp.dictionary[w.name.as_str()].code.clone();
-							code.run(interp, &mut stack);
-						},
-					};
-				};
-			},
-			InterpreterMode::Compiler => {
-				let mut word = Statement::new();
-
-			},
-		}
+		let mut stack = Stack::new();
+		for word in self {
+			match word {
+				&Op::Number(n) => {
+					stack.push(n);
+				},
+				&Op::Word(ref w) => {
+					let code = interp.dictionary[w.name.as_str()].code.clone();
+					code.run(interp, &mut stack);
+				},
+			};
+		};
 	}
 }
 
@@ -130,15 +121,8 @@ impl DictionaryExt for Dictionary {
 	}
 }
 
-#[derive(PartialEq, Eq)]
-enum InterpreterMode {
-	Normal,
-	Compiler,
-}
-
 struct Interpreter {
     dictionary: Dictionary,
-    mode: InterpreterMode,
 }
 
 macro_rules! binary_entry {
@@ -342,26 +326,6 @@ impl Interpreter {
 				})),
 			));
 
-		dict.insert_entry(Entry::new(":",
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
-					if interp.mode != InterpreterMode::Compiler {
-						interp.mode = InterpreterMode::Compiler;
-					} else {
-						panic!("Compilerception!")
-					}
-				})),
-			));
-
-		dict.insert_entry(Entry::new(";",
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
-					if interp.mode == InterpreterMode::Compiler {
-						interp.mode = InterpreterMode::Normal;
-					} else {
-						panic!("Got ';' when not in Compile mode")
-					}
-				})),
-			));
-
 		let square = {
 			let mut s = Statement::new();
 			s.push_back(Op::Word(dict.get("dup").unwrap().clone()));
@@ -372,7 +336,6 @@ impl Interpreter {
 
 		Interpreter {
 			dictionary: dict,
-			mode: InterpreterMode::Normal,
 		}
 	}
 
@@ -392,7 +355,7 @@ impl Interpreter {
 						Err(_) => comp.push_back(Op::Word(self.dictionary.get(w).unwrap().clone())),
 					}
 				}
-				self.dictionary.insert_entry(Entry::new(name, Code::Forth(comp)));
+				self.dictionary.insert_entry(Entry::from_statement(name, comp));
 			},
 			_ => match word.parse::<i32>() {
 				Ok(n) => {
