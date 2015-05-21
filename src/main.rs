@@ -9,6 +9,7 @@ use std::io;
 use std::io::prelude::*;
 use std::rc::Rc;
 use std::fmt;
+use std::str::FromStr;
 use rustc_unicode::str::UnicodeStr;
 
 type Int = i32;
@@ -61,6 +62,13 @@ impl Entry {
 			code: Rc::new(code),
 		}
 	}
+
+	fn from_statement(name: &str, stmt: Statement) -> Entry {
+		Entry {
+			name: name.to_string(),
+			code: Rc::new(Code::Forth(stmt)),
+		}
+	}
 }
 
 impl Code {
@@ -84,23 +92,31 @@ impl Code {
 }
 
 trait StatementExt {
-	fn run(&self, &mut Interpreter, &mut Stack);
+	fn run(&self, &mut Interpreter);
 }
 
 impl StatementExt for Statement {
-	fn run(&self, interp: &mut Interpreter, stack: &mut Stack) {
-		let mut stack = Stack::new();
-		for word in self {
-			match word {
-				&Op::Number(n) => {
-					stack.push(n);
-				},
-				&Op::Word(ref w) => {
-					let code = interp.dictionary[w.name.as_str()].code.clone();
-					code.run(interp, &mut stack);
-				},
-			};
-		};
+	fn run(&self, interp: &mut Interpreter) {
+		match interp.mode {
+			InterpreterMode::Normal => {
+				let mut stack = Stack::new();
+				for word in self {
+					match word {
+						&Op::Number(n) => {
+							stack.push(n);
+						},
+						&Op::Word(ref w) => {
+							let code = interp.dictionary[w.name.as_str()].code.clone();
+							code.run(interp, &mut stack);
+						},
+					};
+				};
+			},
+			InterpreterMode::Compiler => {
+				let mut word = Statement::new();
+
+			},
+		}
 	}
 }
 
@@ -114,8 +130,15 @@ impl DictionaryExt for Dictionary {
 	}
 }
 
+#[derive(PartialEq, Eq)]
+enum InterpreterMode {
+	Normal,
+	Compiler,
+}
+
 struct Interpreter {
     dictionary: Dictionary,
+    mode: InterpreterMode,
 }
 
 macro_rules! binary_entry {
@@ -319,6 +342,26 @@ impl Interpreter {
 				})),
 			));
 
+		dict.insert_entry(Entry::new(":",
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
+					if interp.mode != InterpreterMode::Compiler {
+						interp.mode = InterpreterMode::Compiler;
+					} else {
+						panic!("Compilerception!")
+					}
+				})),
+			));
+
+		dict.insert_entry(Entry::new(";",
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
+					if interp.mode == InterpreterMode::Compiler {
+						interp.mode = InterpreterMode::Normal;
+					} else {
+						panic!("Got ';' when not in Compile mode")
+					}
+				})),
+			));
+
 		let square = {
 			let mut s = Statement::new();
 			s.push_back(Op::Word(dict.get("dup").unwrap().clone()));
@@ -329,27 +372,45 @@ impl Interpreter {
 
 		Interpreter {
 			dictionary: dict,
+			mode: InterpreterMode::Normal,
 		}
 	}
 
-	fn lex(&mut self, statement: &str) -> Statement {
-		let words = statement.split(' ');
-		let mut ret = Statement::new();
-		for word in words {
-			if let Some(n) = Int::from_str_radix(word, 10).ok() {
-				ret.push_back(Op::Number(n));
-			} else if (*word).is_whitespace() {
-				return ret;
-			} else {
-				ret.push_back(Op::Word(self.dictionary[word.to_lowercase().as_str()].clone()));
-			}
-		};
-		ret
-	}
-
 	fn exec(&mut self, statement: &str) {
-		let statement = self.lex(statement);
-		statement.run(self, &mut Stack::new());
+		let mut words = statement.split(|c: char| c.is_whitespace());
+		let mut stmt = Statement::new();
+		while let Some(word) = words.next() { match word {
+			"(" => while let Some(w) = words.next() { if w == ")" { break; } },
+			"\\" => while let Some(w) = words.next() { if w == "\n" { break; } },
+			":" => {
+				let mut comp = Statement::new();
+				let name = words.next().unwrap();
+				while let Some(w) = words.next() {
+					if w == ";" { break; }
+					match w.parse::<i32>() {
+						Ok(n) => comp.push_back(Op::Number(n)),
+						Err(_) => comp.push_back(Op::Word(self.dictionary.get(w).unwrap().clone())),
+					}
+				}
+				self.dictionary.insert_entry(Entry::new(name, Code::Forth(comp)));
+			},
+			_ => match word.parse::<i32>() {
+				Ok(n) => {
+					stmt.push_back(Op::Number(n));
+				},
+				Err(e) => {
+					if let Some(elem) = self.dictionary.get(word) {
+						stmt.push_back(Op::Word(elem.clone()));
+					} else {
+						println!("Invalid word: {}", word);
+						return;
+					}
+				},
+			},
+
+		}}
+
+		stmt.run(self);
 	}
 }
 
