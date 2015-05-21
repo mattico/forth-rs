@@ -3,7 +3,7 @@
 
 extern crate rustc_unicode;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::hash::{Hash, Hasher};
 use std::io;
 use std::io::prelude::*;
@@ -11,13 +11,17 @@ use std::rc::Rc;
 use std::fmt;
 use rustc_unicode::str::UnicodeStr;
 
+type Int = i32;
+type Double = f64;
+
 type Dictionary = HashMap<String, Rc<Entry>>;
-type Statement = Vec<Op>;
-type NativeFn = Box<Fn(&mut Vec<Op>, &mut Interpreter)>;
+type Statement = VecDeque<Op>;
+type Stack = Vec<Int>;
+type NativeFn = Box<Fn(&mut Interpreter, &mut Stack)>;
 
 #[derive(Clone, Debug)]
 enum Op {
-	Number(i32),
+	Number(Int),
 	Word(Rc<Entry>),
 }
 
@@ -60,17 +64,17 @@ impl Entry {
 }
 
 impl Code {
-	fn run(&self, stack: &mut Statement, interp: &mut Interpreter) {
+	fn run(&self, interp: &mut Interpreter, stack: &mut Stack) {
 		match self {
 			&Code::Native(ref f) => {
-				f(stack, interp);
+				f(interp, stack);
 			},
 			&Code::Forth(ref statement) => {
 				for ref op in statement {
 					match *op {
-						&Op::Number(ref n) => { break; }
+						&Op::Number(ref n) => { stack.push(*n) }
 						&Op::Word(ref w) => {
-							(*w).code.run(stack, interp);
+							(*w).code.run(interp, stack);
 						},
 					}
 				}
@@ -80,45 +84,23 @@ impl Code {
 }
 
 trait StatementExt {
-	fn pop_number(&mut self, &mut Interpreter) -> i32;
-	fn push_number(&mut self, i32);
-	fn run(&mut self, &mut Interpreter) -> Result<i32, Statement>;
+	fn run(&self, &mut Interpreter, &mut Stack);
 }
 
 impl StatementExt for Statement {
-	fn pop_number(&mut self, interp: &mut Interpreter) -> i32 {
-		loop {
-			match self.pop() {
-				Some(Op::Number(n)) => { return n; },
-				Some(Op::Word(s)) => s.code.run(self, interp),
-				None => panic!("Popped empty statement"),
-			}
-		}
-	}
-
-	fn push_number(&mut self, number: i32) {
-		self.push(Op::Number(number));
-	}
-
-	fn run(&mut self, interp: &mut Interpreter) -> Result<i32, Statement> {
-		while self.len() > 0 {
-			match self.pop() {
-				Some(Op::Number(n)) => {
-					if self.len() == 0 {
-						return Ok(n)
-					} else {
-						self.push(Op::Number(n));
-						return Err(self.clone())
-					}
+	fn run(&self, interp: &mut Interpreter, stack: &mut Stack) {
+		let mut stack = Stack::new();
+		for word in self {
+			match word {
+				&Op::Number(n) => {
+					stack.push(n);
 				},
-				Some(Op::Word(w)) => {
+				&Op::Word(ref w) => {
 					let code = interp.dictionary[w.name.as_str()].code.clone();
-					code.run(self, interp);
+					code.run(interp, &mut stack);
 				},
-				None => unreachable!(),
 			};
-		}
-		Ok(0)
+		};
 	}
 }
 
@@ -139,10 +121,10 @@ struct Interpreter {
 macro_rules! binary_entry {
 	($name:expr, $o:expr) => {
 		Entry::new($name,
-				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
-					let b = stack.pop_number(interp);
-					let a = stack.pop_number(interp);
-					stack.push_number($o(a, b));
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
+					let b = stack.pop().unwrap();
+					let a = stack.pop().unwrap();
+					stack.push($o(a, b));
 				})),
 			)
 	}
@@ -151,9 +133,9 @@ macro_rules! binary_entry {
 macro_rules! unary_entry {
 	($name:expr, $o:expr) => {
 		Entry::new($name,
-				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
-					let a = stack.pop_number(interp);
-					stack.push_number($o(a));
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
+					let a = stack.pop().unwrap();
+					stack.push($o(a));
 				})),
 			)
 	}
@@ -162,7 +144,7 @@ macro_rules! unary_entry {
 macro_rules! nonary_entry {
 	($name:expr, $o:expr) => {
 		Entry::new($name,
-				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
 					Op::Number($o);
 				})),
 			)
@@ -190,143 +172,150 @@ impl Interpreter {
 		dict.insert_entry(nonary_entry!("bye", ::std::process::exit(0)));
 
 		dict.insert_entry(Entry::new("<",
-				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
-					let y = stack.pop_number(interp);
-					let x = stack.pop_number(interp);
-					stack.push(if x < y { Op::Number(1) } else { Op::Number(0) });
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
+					let y = stack.pop().unwrap();
+					let x = stack.pop().unwrap();
+					stack.push(if x < y { 1 } else { 0 });
 				})),
 			));
 
 		dict.insert_entry(Entry::new(">",
-				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
-					let y = stack.pop_number(interp);
-					let x = stack.pop_number(interp);
-					stack.push(if x > y { Op::Number(1) } else { Op::Number(0) });
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
+					let y = stack.pop().unwrap();
+					let x = stack.pop().unwrap();
+					stack.push(if x > y { 1 } else { 0 });
 				})),
 			));
 
 		dict.insert_entry(Entry::new("=",
-				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
-					let y = stack.pop_number(interp);
-					let x = stack.pop_number(interp);
-					stack.push(if x == y { Op::Number(1) } else { Op::Number(0) });
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
+					let y = stack.pop().unwrap();
+					let x = stack.pop().unwrap();
+					stack.push(if x == y { 1 } else { 0 });
 				})),
 			));
 
 		dict.insert_entry(Entry::new("0<",
-				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
-					let x = stack.pop_number(interp);
-					stack.push(if x < 0 { Op::Number(1) } else { Op::Number(0) });
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
+					let x = stack.pop().unwrap();
+					stack.push(if x < 0 { 1 } else { 0 });
 				})),
 			));
 
 		dict.insert_entry(Entry::new("0=",
-				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
-					let x = stack.pop_number(interp);
-					stack.push(if x == 0 { Op::Number(1) } else { Op::Number(0) });
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
+					let x = stack.pop().unwrap();
+					stack.push(if x == 0 { 1 } else { 0 });
 				})),
 			));
 
 		dict.insert_entry(Entry::new("0>",
-				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
-					let x = stack.pop_number(interp);
-					stack.push(if x > 0 { Op::Number(1) } else { Op::Number(0) });
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
+					let x = stack.pop().unwrap();
+					stack.push(if x > 0 { 1 } else { 0 });
 				})),
 			));
 
 		dict.insert_entry(Entry::new("1+",
-				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
-					let x = stack.pop_number(interp);
-					stack.push_number(x + 1);
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
+					let x = stack.pop().unwrap();
+					stack.push(x + 1);
 				})),
 			));
 
 		dict.insert_entry(Entry::new("1-",
-				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
-					let x = stack.pop_number(interp);
-					stack.push_number(x - 1);
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
+					let x = stack.pop().unwrap();
+					stack.push(x - 1);
 				})),
 			));
 
 		dict.insert_entry(Entry::new("2+",
-				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
-					let x = stack.pop_number(interp);
-					stack.push_number(x + 2);
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
+					let x = stack.pop().unwrap();
+					stack.push(x + 2);
 				})),
 			));
 
 		dict.insert_entry(Entry::new("2-",
-				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
-					let x = stack.pop_number(interp);
-					stack.push_number(x - 2);
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
+					let x = stack.pop().unwrap();
+					stack.push(x - 2);
 				})),
 			));
 
 		dict.insert_entry(Entry::new("2/",
-				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
-					let x = stack.pop_number(interp);
-					stack.push_number(x >> 1); // Per fst83 standard
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
+					let x = stack.pop().unwrap();
+					stack.push(x >> 1); // Per fst83 standard
 				})),
 			));
 
 		dict.insert_entry(Entry::new("dup",
-				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
-					let x = stack.pop_number(interp);
-					stack.push_number(x.clone());
-					stack.push_number(x);
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
+					let x = stack.pop().unwrap();
+					stack.push(x.clone());
+					stack.push(x);
 				})),
 			));
 
 		dict.insert_entry(Entry::new("?dup",
-				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
-					let x = stack.pop_number(interp);
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
+					let x = stack.pop().unwrap();
 					if x != 0 {
-						stack.push_number(x.clone());
-						stack.push_number(x);
+						stack.push(x.clone());
+						stack.push(x);
 					} else {
-						stack.push_number(x);
+						stack.push(x);
 					}
 				})),
 			));
 
 		dict.insert_entry(Entry::new("over",
-				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
-					let x = stack.pop_number(interp);
-					let y = stack.pop_number(interp);
-					stack.push_number(x.clone());
-					stack.push_number(y);
-					stack.push_number(x);
-				})),
-			));
-
-		dict.insert_entry(Entry::new("rot",
-				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
-					let x = stack.pop_number(interp);
-					let y = stack.pop_number(interp);
-					let z = stack.pop_number(interp);
-					stack.push_number(y);
-					stack.push_number(x);
-					stack.push_number(z);
-				})),
-			));
-
-		dict.insert_entry(Entry::new("dump",
-				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
 					let x = stack.pop().unwrap();
-					print!("{:?} ", x);
+					let y = stack.pop().unwrap();
+					stack.push(x.clone());
+					stack.push(y);
 					stack.push(x);
 				})),
 			));
 
+		dict.insert_entry(Entry::new("swap",
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
+					let x = stack.pop().unwrap();
+					let y = stack.pop().unwrap();
+					stack.push(x);
+					stack.push(y);
+				})),
+			));
+
+		dict.insert_entry(Entry::new("rot",
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
+					let x = stack.pop().unwrap();
+					let y = stack.pop().unwrap();
+					let z = stack.pop().unwrap();
+					stack.push(y);
+					stack.push(x);
+					stack.push(z);
+				})),
+			));
+
+		dict.insert_entry(Entry::new("dump",
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
+					println!("ds =  {:?} ", stack);
+				})),
+			));
+
 		dict.insert_entry(Entry::new("cr",
-				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
 					println!("");
 				})),
 			));
 
 		dict.insert_entry(Entry::new(".",
-				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
-					println!("{:?}", stack.pop_number(interp));
+				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| {
+					println!("{}", stack.pop().unwrap());
 				})),
 			));
 
@@ -339,20 +328,20 @@ impl Interpreter {
 		let words = statement.split(' ');
 		let mut ret = Statement::new();
 		for word in words {
-			if let Some(n) = i32::from_str_radix(word, 10).ok() {
-				ret.push(Op::Number(n));
+			if let Some(n) = Int::from_str_radix(word, 10).ok() {
+				ret.push_back(Op::Number(n));
 			} else if (*word).is_whitespace() {
 				return ret;
 			} else {
-				ret.push(Op::Word(self.dictionary[word.to_lowercase().as_str()].clone()));
+				ret.push_back(Op::Word(self.dictionary[word.to_lowercase().as_str()].clone()));
 			}
 		};
 		ret
 	}
 
-	fn exec(&mut self, statement: &str) -> Result<i32, Statement> {
+	fn exec(&mut self, statement: &str) {
 		let mut statement = self.lex(statement);
-		return statement.run(self);
+		statement.run(self, &mut Stack::new());
 	}
 }
 
