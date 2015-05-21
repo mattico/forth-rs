@@ -1,5 +1,4 @@
 #![feature(convert, collections, unicode)]
-#![allow(unused_variables)]
 
 use std::collections::{HashMap, VecDeque};
 use std::hash::{Hash, Hasher};
@@ -151,7 +150,7 @@ macro_rules! try_stack {
 macro_rules! binary_entry {
 	($name:expr, $o:expr) => {
 		Entry::new($name,
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let b = try_stack!(stack.pop());
 					let a = try_stack!(stack.pop());
 					stack.push($o(a, b));
@@ -164,7 +163,7 @@ macro_rules! binary_entry {
 macro_rules! unary_entry {
 	($name:expr, $o:expr) => {
 		Entry::new($name,
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let a = try_stack!(stack.pop());
 					stack.push($o(a));
 					Ok(())
@@ -176,7 +175,7 @@ macro_rules! unary_entry {
 macro_rules! nonary_entry {
 	($name:expr, $o:expr) => {
 		Entry::new($name,
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, _: &mut Stack| -> ForthResult<()> {
 					Op::Number($o);
 					Ok(())
 				})),
@@ -215,7 +214,7 @@ impl Interpreter {
 			));
 
 		dict.insert_entry(Entry::new("<",
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let y = try_stack!(stack.pop());
 					let x = try_stack!(stack.pop());
 					stack.push(if x < y { 1 } else { 0 });
@@ -224,7 +223,7 @@ impl Interpreter {
 			));
 
 		dict.insert_entry(Entry::new(">",
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let y = try_stack!(stack.pop());
 					let x = try_stack!(stack.pop());
 					stack.push(if x > y { 1 } else { 0 });
@@ -233,7 +232,7 @@ impl Interpreter {
 			));
 
 		dict.insert_entry(Entry::new("=",
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let y = try_stack!(stack.pop());
 					let x = try_stack!(stack.pop());
 					stack.push(if x == y { 1 } else { 0 });
@@ -242,7 +241,7 @@ impl Interpreter {
 			));
 
 		dict.insert_entry(Entry::new("0<",
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					stack.push(if x < 0 { 1 } else { 0 });
 					Ok(())
@@ -250,7 +249,7 @@ impl Interpreter {
 			));
 
 		dict.insert_entry(Entry::new("0=",
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					stack.push(if x == 0 { 1 } else { 0 });
 					Ok(())
@@ -258,7 +257,7 @@ impl Interpreter {
 			));
 
 		dict.insert_entry(Entry::new("0>",
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					stack.push(if x > 0 { 1 } else { 0 });
 					Ok(())
@@ -266,7 +265,7 @@ impl Interpreter {
 			));
 
 		dict.insert_entry(Entry::new("1+",
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					stack.push(x + 1);
 					Ok(())
@@ -274,7 +273,7 @@ impl Interpreter {
 			));
 
 		dict.insert_entry(Entry::new("1-",
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					stack.push(x - 1);
 					Ok(())
@@ -282,7 +281,7 @@ impl Interpreter {
 			));
 
 		dict.insert_entry(Entry::new("2+",
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					stack.push(x + 2);
 					Ok(())
@@ -290,7 +289,7 @@ impl Interpreter {
 			));
 
 		dict.insert_entry(Entry::new("2-",
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					stack.push(x - 2);
 					Ok(())
@@ -298,7 +297,7 @@ impl Interpreter {
 			));
 
 		dict.insert_entry(Entry::new("2/",
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					stack.push(x >> 1); // Per fst83 standard
 					Ok(())
@@ -306,7 +305,7 @@ impl Interpreter {
 			));
 
 		dict.insert_entry(Entry::new("dup",
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					stack.push(x.clone());
 					stack.push(x);
@@ -315,7 +314,7 @@ impl Interpreter {
 			));
 
 		dict.insert_entry(Entry::new("?dup",
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					if x != 0 {
 						stack.push(x.clone());
@@ -328,7 +327,7 @@ impl Interpreter {
 			));
 
 		dict.insert_entry(Entry::new("over",
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					let y = try_stack!(stack.pop());
 					stack.push(x.clone());
@@ -339,7 +338,7 @@ impl Interpreter {
 			));
 
 		dict.insert_entry(Entry::new("swap",
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					let y = try_stack!(stack.pop());
 					stack.push(x);
@@ -349,7 +348,7 @@ impl Interpreter {
 			));
 
 		dict.insert_entry(Entry::new("rot",
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					let y = try_stack!(stack.pop());
 					let z = try_stack!(stack.pop());
@@ -361,21 +360,21 @@ impl Interpreter {
 			));
 
 		dict.insert_entry(Entry::new("dump",
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					println!("ds =  {:?} ", stack);
 					Ok(())
 				})),
 			));
 
 		dict.insert_entry(Entry::new("cr",
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, _: &mut Stack| -> ForthResult<()> {
 					println!("");
 					Ok(())
 				})),
 			));
 
 		dict.insert_entry(Entry::new(".",
-				Code::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+				Code::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					println!("{}", try_stack!(stack.pop()));
 					Ok(())
 				})),
@@ -423,7 +422,7 @@ impl Interpreter {
 				Ok(n) => {
 					stmt.push_back(Op::Number(n));
 				},
-				Err(e) => {
+				Err(_) => {
 					if let Some(elem) = self.dictionary.get(word) {
 						stmt.push_back(Op::Word(elem.clone()));
 					} else {
