@@ -1,5 +1,7 @@
-#![feature(convert, collections)]
+#![feature(convert, collections, unicode)]
 #![allow(unused_variables)]
+
+extern crate rustc_unicode;
 
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
@@ -7,6 +9,7 @@ use std::io;
 use std::io::prelude::*;
 use std::rc::Rc;
 use std::fmt;
+use rustc_unicode::str::UnicodeStr;
 
 type Dictionary = HashMap<String, Rc<Entry>>;
 type Statement = Vec<Op>;
@@ -174,15 +177,15 @@ impl Interpreter {
 		dict.insert_entry(binary_entry!("*", ::std::ops::Mul::mul));
 		dict.insert_entry(binary_entry!("+", ::std::ops::Add::add));
 		dict.insert_entry(binary_entry!("-", ::std::ops::Sub::sub));
-		dict.insert_entry(binary_entry!("MOD", ::std::ops::Rem::rem));
-		dict.insert_entry(binary_entry!("AND", ::std::ops::BitAnd::bitand));
-		dict.insert_entry(binary_entry!("OR", ::std::ops::BitOr::bitor));
-		dict.insert_entry(binary_entry!("XOR", ::std::ops::BitXor::bitxor));
-		dict.insert_entry(binary_entry!("RSHIFT", ::std::ops::Shr::shr));
-		dict.insert_entry(binary_entry!("LSHIFT", ::std::ops::Shl::shl));
+		dict.insert_entry(binary_entry!("mod", ::std::ops::Rem::rem));
+		dict.insert_entry(binary_entry!("and", ::std::ops::BitAnd::bitand));
+		dict.insert_entry(binary_entry!("or", ::std::ops::BitOr::bitor));
+		dict.insert_entry(binary_entry!("xor", ::std::ops::BitXor::bitxor));
+		dict.insert_entry(binary_entry!("rshift", ::std::ops::Shr::shr));
+		dict.insert_entry(binary_entry!("lshift", ::std::ops::Shl::shl));
 
-		dict.insert_entry(unary_entry!("NEGATE", ::std::ops::Neg::neg));
-		dict.insert_entry(unary_entry!("NOT", ::std::ops::Not::not));
+		dict.insert_entry(unary_entry!("negate", ::std::ops::Neg::neg));
+		dict.insert_entry(unary_entry!("not", ::std::ops::Not::not));
 
 		dict.insert_entry(nonary_entry!("bye", ::std::process::exit(0)));
 
@@ -266,7 +269,7 @@ impl Interpreter {
 				})),
 			));
 
-		dict.insert_entry(Entry::new("DUP",
+		dict.insert_entry(Entry::new("dup",
 				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
 					let x = stack.pop_number(interp);
 					stack.push_number(x.clone());
@@ -274,7 +277,7 @@ impl Interpreter {
 				})),
 			));
 
-		dict.insert_entry(Entry::new("?DUP",
+		dict.insert_entry(Entry::new("?dup",
 				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
 					let x = stack.pop_number(interp);
 					if x != 0 {
@@ -286,7 +289,7 @@ impl Interpreter {
 				})),
 			));
 
-		dict.insert_entry(Entry::new("OVER",
+		dict.insert_entry(Entry::new("over",
 				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
 					let x = stack.pop_number(interp);
 					let y = stack.pop_number(interp);
@@ -296,7 +299,7 @@ impl Interpreter {
 				})),
 			));
 
-		dict.insert_entry(Entry::new("ROT",
+		dict.insert_entry(Entry::new("rot",
 				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
 					let x = stack.pop_number(interp);
 					let y = stack.pop_number(interp);
@@ -304,6 +307,26 @@ impl Interpreter {
 					stack.push_number(y);
 					stack.push_number(x);
 					stack.push_number(z);
+				})),
+			));
+
+		dict.insert_entry(Entry::new("dump",
+				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
+					let x = stack.pop().unwrap();
+					print!("{:?} ", x);
+					stack.push(x);
+				})),
+			));
+
+		dict.insert_entry(Entry::new("cr",
+				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
+					println!("");
+				})),
+			));
+
+		dict.insert_entry(Entry::new(".",
+				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
+					println!("{:?}", stack.pop_number(interp));
 				})),
 			));
 
@@ -318,8 +341,10 @@ impl Interpreter {
 		for word in words {
 			if let Some(n) = i32::from_str_radix(word, 10).ok() {
 				ret.push(Op::Number(n));
+			} else if (*word).is_whitespace() {
+				return ret;
 			} else {
-				ret.push(Op::Word(self.dictionary[word].clone()));
+				ret.push(Op::Word(self.dictionary[word.to_lowercase().as_str()].clone()));
 			}
 		};
 		ret
@@ -337,17 +362,10 @@ fn main() {
     let mut interp = Interpreter::new();
     let mut stdin = io::stdin();
     loop {
-    	print!("> ");
+    	print!("Forth> ");
     	io::stdout().flush().ok().expect("Could not flush stdout");
     	let mut line = String::new();
     	stdin.read_line(&mut line).ok().expect("Unable to read from stdin");
-    	match interp.exec(line.trim_right()) {
-    		Err(s) => {
-    			println!("{:?}", s);
-    		},
-    		Ok(n) => {
-    			println!("{}", n);
-    		},
-    	}
+    	let result = interp.exec(line.trim());
     }
 }
