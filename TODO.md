@@ -1,6 +1,6 @@
-== TODO
+## TODO
 - [x] Word compilation
-- [ ] Comments
+- [x] Comments
 - [ ] Control flow
 - [ ] Types (reference, double, string)
 - [ ] Indirection
