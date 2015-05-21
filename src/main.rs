@@ -1,4 +1,5 @@
 #![feature(float_from_str_radix, convert, collections)]
+#![allow(unused_variables)]
 
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
@@ -164,6 +165,14 @@ impl Interpreter {
 		dict.insert_entry(nonary_entry!("QUIT", ::std::process::exit(0)));
 		dict.insert_entry(nonary_entry!("bye", ::std::process::exit(0)));
 
+		dict.insert_entry(Entry::new(
+				String::from_str("DUP"),
+				Code::Native(Box::new(|stack: &mut Statement, interp: &mut Interpreter| {
+					let x = stack.pop().unwrap();
+					stack.push(x.clone());
+					stack.push(x);
+				})),
+			));
 
 		Interpreter {
 			dictionary: dict,
