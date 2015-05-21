@@ -1,4 +1,4 @@
-== TODO
+## TODO
 1. Word compilation
 2. Control flow
 2. Types (reference, double, string)
