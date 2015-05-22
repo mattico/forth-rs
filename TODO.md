@@ -4,7 +4,7 @@
 - [ ] Control flow
 - [ ] Types (reference, double, string)
 - [ ] Indirection
-- [ ] Refactor into modules
+- [x] Refactor into modules
 - [x] Error handling
 	- [ ] *Better* Error Handling
 - [ ] Embeddable Lib

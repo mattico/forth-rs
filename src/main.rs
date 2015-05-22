@@ -1,19 +1,9 @@
-#![feature(convert, collections, unicode)]
-
 use std::io;
 use std::io::prelude::*;
 
-// extern crate rustc_unicode;
-// use rustc_unicode::str::UnicodeStr;
+extern crate forth;
 
-mod error;
-mod types;
-mod word;
-mod statement;
-mod dictionary;
-mod interpreter;
-
-use interpreter::Interpreter;
+use forth::interpreter::Interpreter;
 
 fn main() {
 	println!("forth-rs version 0.1.0");

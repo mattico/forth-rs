@@ -2,3 +2,11 @@
 name = "forth-rs"
 version = "0.1.0"
 authors = ["Matt Ickstadt <matthew.ickstadt@gmail.com>"]
+
+[[bin]]
+name = "forth-rs"
+path = "src/main.rs"
+
+[lib]
+name = "forth"
+path = "src/lib.rs"
