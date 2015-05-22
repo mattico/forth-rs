@@ -1,4 +1,4 @@
-#![feature(convert, collections)]
+#![feature(collections)]
 
 pub mod error;
 pub mod types;

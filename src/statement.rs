@@ -18,7 +18,7 @@ impl StatementExt for Statement {
 					stack.push(n);
 				},
 				&ForthCell::Word(ref w) => {
-					let code = interp.dictionary[w.name.as_str()].code.clone();
+					let code = w.code.clone();
 					try!(code.run(interp, &mut stack));
 				},
 			};
