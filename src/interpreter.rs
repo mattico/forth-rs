@@ -22,38 +22,44 @@ macro_rules! try_stack {
 }
 
 macro_rules! binary_entry {
-	($name:expr, $o:expr) => {
-		Entry::new($name,
+	($dict:ident, $name:expr, $f:expr) => {
+		$dict.insert_entry(Entry::new($name,
 				ForthWord::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let b = try_stack!(stack.pop());
 					let a = try_stack!(stack.pop());
-					stack.push($o(a, b));
+					stack.push($f(a, b));
 					Ok(())
 				})),
-			)
+			))
 	}
 }
 
 macro_rules! unary_entry {
-	($name:expr, $o:expr) => {
-		Entry::new($name,
+	($dict:ident, $name:expr, $f:expr) => {
+		$dict.insert_entry(Entry::new($name,
 				ForthWord::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let a = try_stack!(stack.pop());
-					stack.push($o(a));
+					stack.push($f(a));
 					Ok(())
 				})),
-			)
+			))
 	}
 }
 
 macro_rules! nonary_entry {
-	($name:expr, $o:expr) => {
-		Entry::new($name,
+	($dict:ident, $name:expr, $f:expr) => {
+		$dict.insert_entry(Entry::new($name,
 				ForthWord::Native(Box::new(|_: &mut Interpreter, _: &mut Stack| -> ForthResult<()> {
-					ForthCell::Number($o);
+					ForthCell::Number($f);
 					Ok(())
 				})),
-			)
+			))
+	}
+}
+
+macro_rules! entry {
+	($dict:ident, $name:expr, $f:expr) => {
+		$dict.insert_entry(Entry::new($name, ForthWord::Native(Box::new($f))))
 	}
 }
 
@@ -61,134 +67,107 @@ impl Interpreter {
 	pub fn new() -> Interpreter {
 		let mut dict = Dictionary::new();
 
-		dict.insert_entry(binary_entry!("/", ::std::ops::Div::div));
-		dict.insert_entry(binary_entry!("*", ::std::ops::Mul::mul));
-		dict.insert_entry(binary_entry!("+", ::std::ops::Add::add));
-		dict.insert_entry(binary_entry!("-", ::std::ops::Sub::sub));
-		dict.insert_entry(binary_entry!("mod", ::std::ops::Rem::rem));
-		dict.insert_entry(binary_entry!("and", ::std::ops::BitAnd::bitand));
-		dict.insert_entry(binary_entry!("or", ::std::ops::BitOr::bitor));
-		dict.insert_entry(binary_entry!("xor", ::std::ops::BitXor::bitxor));
-		dict.insert_entry(binary_entry!("rshift", ::std::ops::Shr::shr));
-		dict.insert_entry(binary_entry!("lshift", ::std::ops::Shl::shl));
+		binary_entry!(dict, "/", ::std::ops::Div::div);
+		binary_entry!(dict, "*", ::std::ops::Mul::mul);
+		binary_entry!(dict, "+", ::std::ops::Add::add);
+		binary_entry!(dict, "-", ::std::ops::Sub::sub);
+		binary_entry!(dict, "mod", ::std::ops::Rem::rem);
+		binary_entry!(dict, "and", ::std::ops::BitAnd::bitand);
+		binary_entry!(dict, "or", ::std::ops::BitOr::bitor);
+		binary_entry!(dict, "xor", ::std::ops::BitXor::bitxor);
+		binary_entry!(dict, "rshift", ::std::ops::Shr::shr);
+		binary_entry!(dict, "lshift", ::std::ops::Shl::shl);
 
-		dict.insert_entry(unary_entry!("negate", ::std::ops::Neg::neg));
-		dict.insert_entry(unary_entry!("not", ::std::ops::Not::not));
+		unary_entry!(dict, "negate", ::std::ops::Neg::neg);
+		unary_entry!(dict, "not", ::std::ops::Not::not);
 
-		dict.insert_entry(nonary_entry!("bye", ::std::process::exit(0)));
+		nonary_entry!(dict, "bye", ::std::process::exit(0));
 
-		dict.insert_entry(Entry::new("$",
-				ForthWord::Native(Box::new(|interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+		entry!(dict, "$", |interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(interp.last_result.clone());
 					for v in x {
 						stack.push(v);
 					}
 					Ok(())
-				})),
-			));
+				});
 
-		dict.insert_entry(Entry::new("<",
-				ForthWord::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+		entry!(dict, "<", | _: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let y = try_stack!(stack.pop());
 					let x = try_stack!(stack.pop());
 					stack.push(if x < y { 1 } else { 0 });
 					Ok(())
-				})),
-			));
+				});
 
-		dict.insert_entry(Entry::new(">",
-				ForthWord::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+		entry!(dict, ">", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let y = try_stack!(stack.pop());
 					let x = try_stack!(stack.pop());
 					stack.push(if x > y { 1 } else { 0 });
 					Ok(())
-				})),
-			));
+				});
 
-		dict.insert_entry(Entry::new("=",
-				ForthWord::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+		entry!(dict, "=", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let y = try_stack!(stack.pop());
 					let x = try_stack!(stack.pop());
 					stack.push(if x == y { 1 } else { 0 });
 					Ok(())
-				})),
-			));
+				});
 
-		dict.insert_entry(Entry::new("0<",
-				ForthWord::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+		entry!(dict, "0<", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					stack.push(if x < 0 { 1 } else { 0 });
 					Ok(())
-				})),
-			));
+				});
 
-		dict.insert_entry(Entry::new("0=",
-				ForthWord::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+		entry!(dict, "0=", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					stack.push(if x == 0 { 1 } else { 0 });
 					Ok(())
-				})),
-			));
+				});
 
-		dict.insert_entry(Entry::new("0>",
-				ForthWord::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+		entry!(dict, "0>", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					stack.push(if x > 0 { 1 } else { 0 });
 					Ok(())
-				})),
-			));
+				});
 
-		dict.insert_entry(Entry::new("1+",
-				ForthWord::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+		entry!(dict, "1+", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					stack.push(x + 1);
 					Ok(())
-				})),
-			));
+				});
 
-		dict.insert_entry(Entry::new("1-",
-				ForthWord::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+		entry!(dict, "1-", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					stack.push(x - 1);
 					Ok(())
-				})),
-			));
+				});
 
-		dict.insert_entry(Entry::new("2+",
-				ForthWord::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+		entry!(dict, "2+", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					stack.push(x + 2);
 					Ok(())
-				})),
-			));
+				});
 
-		dict.insert_entry(Entry::new("2-",
-				ForthWord::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+		entry!(dict, "2-", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					stack.push(x - 2);
 					Ok(())
-				})),
-			));
+				});
 
-		dict.insert_entry(Entry::new("2/",
-				ForthWord::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+		entry!(dict, "2/", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					stack.push(x >> 1); // Per fst83 standard
 					Ok(())
-				})),
-			));
+				});
 
-		dict.insert_entry(Entry::new("dup",
-				ForthWord::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+		entry!(dict, "dup", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					stack.push(x.clone());
 					stack.push(x);
 					Ok(())
-				})),
-			));
+				});
 
-		dict.insert_entry(Entry::new("?dup",
-				ForthWord::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+		entry!(dict, "?dup", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					if x != 0 {
 						stack.push(x.clone());
@@ -197,32 +176,26 @@ impl Interpreter {
 						stack.push(x);
 					}
 					Ok(())
-				})),
-			));
+				});
 
-		dict.insert_entry(Entry::new("over",
-				ForthWord::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+		entry!(dict, "over", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					let y = try_stack!(stack.pop());
 					stack.push(x.clone());
 					stack.push(y);
 					stack.push(x);
 					Ok(())
-				})),
-			));
+				});
 
-		dict.insert_entry(Entry::new("swap",
-				ForthWord::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+		entry!(dict, "swap", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					let y = try_stack!(stack.pop());
 					stack.push(x);
 					stack.push(y);
 					Ok(())
-				})),
-			));
+				});
 
-		dict.insert_entry(Entry::new("rot",
-				ForthWord::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+		entry!(dict, "rot", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					let y = try_stack!(stack.pop());
 					let z = try_stack!(stack.pop());
@@ -230,29 +203,29 @@ impl Interpreter {
 					stack.push(x);
 					stack.push(z);
 					Ok(())
-				})),
-			));
+				});
 
-		dict.insert_entry(Entry::new("dump",
-				ForthWord::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+		entry!(dict, "dump", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					println!("ds =  {:?} ", stack);
 					Ok(())
-				})),
-			));
+				});
 
-		dict.insert_entry(Entry::new("cr",
-				ForthWord::Native(Box::new(|_: &mut Interpreter, _: &mut Stack| -> ForthResult<()> {
+		entry!(dict, "cr", |_: &mut Interpreter, _: &mut Stack| -> ForthResult<()> {
 					println!("");
 					Ok(())
-				})),
-			));
+				});
 
-		dict.insert_entry(Entry::new(".",
-				ForthWord::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+		entry!(dict, ".", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					println!("{}", try_stack!(stack.pop()));
 					Ok(())
-				})),
-			));
+				});
+
+		entry!(dict, "branch", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+					let y = try_stack!(stack.pop());
+					let x = try_stack!(stack.pop());
+					stack.push(if x == y { 1 } else { 0 });
+					Ok(())
+				});
 
 		let square = {
 			let mut s = Statement::new();
@@ -261,15 +234,6 @@ impl Interpreter {
 			s
 		};
 		dict.insert_entry(Entry::from_statement("square", square));
-
-		dict.insert_entry(Entry::new("branch",
-				ForthWord::Native(Box::new(|_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
-					let y = try_stack!(stack.pop());
-					let x = try_stack!(stack.pop());
-					stack.push(if x == y { 1 } else { 0 });
-					Ok(())
-				})),
-			));
 
 		Interpreter {
 			dictionary: dict,

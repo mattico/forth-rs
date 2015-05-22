@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::fmt;
-use std::io::prelude::*;
 use std::hash::{Hash, Hasher};
 
 use word::ForthWord;
