@@ -85,6 +85,23 @@ impl Interpreter {
 
         nonary_entry!(dict, "bye", ::std::process::exit(0));
 
+        entry!(dict, "*/", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+                    let z = try_stack!(stack.pop()) as i64; // double-length intermediate result
+                    let y = try_stack!(stack.pop()) as i64;
+                    let x = try_stack!(stack.pop()) as i64;
+                    stack.push((x * y / z) as i32);
+                    Ok(())
+                });
+
+        entry!(dict, "*/mod", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+                    let z = try_stack!(stack.pop()) as i64; // double-length intermediate result
+                    let y = try_stack!(stack.pop()) as i64;
+                    let x = try_stack!(stack.pop()) as i64;
+                    stack.push((x * y % z) as i32);
+                    stack.push((x * y / z) as i32);
+                    Ok(())
+
+
         entry!(dict, "abs", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
                     let x = try_stack!(stack.pop());
                     stack.push(x.abs());
@@ -165,6 +182,12 @@ impl Interpreter {
         entry!(dict, "2/", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
                     let x = try_stack!(stack.pop());
                     stack.push(x >> 1); // Per fst83 standard
+                    Ok(())
+                });
+
+        entry!(dict, "2*", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+                    let x = try_stack!(stack.pop());
+                    stack.push(x << 1); // Per fst83 standard
                     Ok(())
                 });
 
