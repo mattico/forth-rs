@@ -7,6 +7,6 @@ pub type Double = f64;
 
 #[derive(Clone, Debug)]
 pub enum ForthCell {
-	Number(Int),
-	Word(Rc<Entry>),
+    Number(Int),
+    Word(Rc<Entry>),
 }
