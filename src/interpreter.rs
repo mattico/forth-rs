@@ -77,6 +77,8 @@ impl Interpreter {
 		binary_entry!(dict, "xor", ::std::ops::BitXor::bitxor);
 		binary_entry!(dict, "rshift", ::std::ops::Shr::shr);
 		binary_entry!(dict, "lshift", ::std::ops::Shl::shl);
+        binary_entry!(dict, "max", ::std::cmp::max);
+        binary_entry!(dict, "min", ::std::cmp::min);
 
 		unary_entry!(dict, "negate", ::std::ops::Neg::neg);
 		unary_entry!(dict, "not", ::std::ops::Not::not);
@@ -88,20 +90,6 @@ impl Interpreter {
                     stack.push(x.abs());
 					Ok(())
 				});
-
-        entry!(dict, "min", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
-                    let y = try_stack!(stack.pop());
-                    let x = try_stack!(stack.pop());
-                    stack.push(::std::cmp::min(x, y));
-                    Ok(())
-                });
-
-        entry!(dict, "max", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
-                    let y = try_stack!(stack.pop());
-                    let x = try_stack!(stack.pop());
-                    stack.push(::std::cmp::max(x, y));
-                    Ok(())
-                });
 
 		entry!(dict, "$", |interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(interp.last_result.clone());
