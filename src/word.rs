@@ -12,11 +12,11 @@ pub enum ForthWord {
 
 impl ForthWord {
 	pub fn run(&self, interp: &mut Interpreter, stack: &mut Stack) -> ForthResult<()> {
-		match self {
-			&ForthWord::Native(ref f) => {
+		match *self {
+			ForthWord::Native(ref f) => {
 				return f(interp, stack);
 			},
-			&ForthWord::Forth(ref statement) => {
+			ForthWord::Forth(ref statement) => {
 				for ref op in statement {
 					match *op {
 						&ForthCell::Number(ref n) => { stack.push(*n) }

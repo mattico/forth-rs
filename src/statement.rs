@@ -13,11 +13,11 @@ impl StatementExt for Statement {
 	fn run(&self, interp: &mut Interpreter) -> ForthResult<Stack> {
 		let mut stack = Stack::new();
 		for word in self {
-			match word {
-				&ForthCell::Number(n) => {
+			match *word {
+				ForthCell::Number(n) => {
 					stack.push(n);
 				},
-				&ForthCell::Word(ref w) => {
+				ForthCell::Word(ref w) => {
 					let code = w.code.clone();
 					try!(code.run(interp, &mut stack));
 				},
