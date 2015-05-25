@@ -4,6 +4,7 @@
 - [ ] Control flow
 - [ ] Types (reference, double, string)
 - [ ] Indirection
+- [ ] Handle Return Stack properly
 - [x] Refactor into modules
 - [x] Error handling
 	- [ ] *Better* Error Handling

@@ -6,6 +6,7 @@ pub enum ForthError {
     WordNotFound,
     UnterminatedWordDefinition,
     WordNameNotFound,
+    InvalidCharacter,
 }
 
 pub type ForthResult<T> = ::std::result::Result<T, ForthError>;

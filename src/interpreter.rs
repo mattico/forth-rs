@@ -83,6 +83,26 @@ impl Interpreter {
 
 		nonary_entry!(dict, "bye", ::std::process::exit(0));
 
+		entry!(dict, "abs", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+					let x = try_stack!(stack.pop());
+                    stack.push(x.abs());
+					Ok(())
+				});
+
+        entry!(dict, "min", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+                    let y = try_stack!(stack.pop());
+                    let x = try_stack!(stack.pop());
+                    stack.push(::std::cmp::min(x, y));
+                    Ok(())
+                });
+
+        entry!(dict, "max", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+                    let y = try_stack!(stack.pop());
+                    let x = try_stack!(stack.pop());
+                    stack.push(::std::cmp::max(x, y));
+                    Ok(())
+                });
+
 		entry!(dict, "$", |interp: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(interp.last_result.clone());
 					for v in x {
@@ -229,6 +249,13 @@ impl Interpreter {
 					let y = try_stack!(stack.pop());
 					let x = try_stack!(stack.pop());
 					stack.push(if x == y { 1 } else { 0 });
+					Ok(())
+				});
+
+		entry!(dict, "emit", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+					let x = try_stack!(stack.pop());
+					if x < 0 || x > 256 { return Err(ForthError::InvalidCharacter) }
+					print!("{}", x as u8 as char);
 					Ok(())
 				});
 
