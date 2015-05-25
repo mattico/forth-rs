@@ -6,3 +6,5 @@ pub mod word;
 pub mod statement;
 pub mod dictionary;
 pub mod interpreter;
+
+mod builtins;
