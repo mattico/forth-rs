@@ -178,6 +178,11 @@ impl Interpreter {
 					Ok(())
 				});
 
+		entry!(dict, "drop", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
+					let _ = try_stack!(stack.pop());
+					Ok(())
+				});
+
 		entry!(dict, "over", |_: &mut Interpreter, stack: &mut Stack| -> ForthResult<()> {
 					let x = try_stack!(stack.pop());
 					let y = try_stack!(stack.pop());
@@ -254,7 +259,7 @@ impl Interpreter {
 					None => return Err(ForthError::WordNameNotFound),
 				};
 				while let Some(w) = words.next() {
-					if w == ";" { 
+					if w == ";" {
 						self.dictionary.insert_entry(Entry::from_statement(name, comp));
 						return Ok(());
 					}
