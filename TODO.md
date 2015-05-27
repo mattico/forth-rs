@@ -5,6 +5,7 @@
 - [ ] Types (reference, double, string)
 - [ ] Indirection
 - [ ] Handle Return Stack properly
+- [ ] Uppercase/Case insensitive standard words
 - [x] Refactor into modules
 - [x] Error handling
     - [ ] *Better* Error Handling

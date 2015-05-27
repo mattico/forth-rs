@@ -1,9 +1,9 @@
-use interpreter::{Interpreter, Stack};
+use interpreter::{Interpreter};
 use error::ForthResult;
 use statement::Statement;
 use types::ForthCell;
 
-pub type NativeFn = Box<Fn(&mut Interpreter, &mut Stack) -> ForthResult<()>>;
+pub type NativeFn = Box<Fn(&mut Interpreter) -> ForthResult<()>>;
 
 pub enum ForthWord {
     Native(NativeFn),
@@ -11,17 +11,18 @@ pub enum ForthWord {
 }
 
 impl ForthWord {
-    pub fn run(&self, interp: &mut Interpreter, stack: &mut Stack) -> ForthResult<()> {
+    pub fn run(&self, interp: &mut Interpreter) -> ForthResult<()> {
         match *self {
             ForthWord::Native(ref f) => {
-                return f(interp, stack);
+                return f(interp);
             },
+            // TODO: DRY with interpreter, statement
             ForthWord::Forth(ref statement) => {
                 for ref op in statement {
-                    match *op {
-                        &ForthCell::Number(ref n) => { stack.push(*n) }
-                        &ForthCell::Word(ref w) => {
-                            try!((*w).code.run(interp, stack));
+                    match **op {
+                        ForthCell::Number(ref n) => { interp.parameter_stack.push(*n) }
+                        ForthCell::Word(ref w) => {
+                            try!((*w).code.run(interp));
                         },
                     }
                 }
