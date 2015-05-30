@@ -15,8 +15,8 @@ fn main() {
         let mut line = String::new();
         stdin.read_line(&mut line).ok().expect("Unable to read from stdin");
         match interp.exec(line.trim()) {
-            Err(e) => println!("{:?}", e),
-            Ok(_) => {},
+            Err(e) => print!("{:?}", e),
+            Ok(_) => print!("ok"),
         }
     }
 }
