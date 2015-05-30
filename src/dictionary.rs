@@ -4,7 +4,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 
 use word::ForthWord;
-use statement::Statement;
+use types::Statement;
 
 pub type Dictionary = HashMap<String, Rc<Entry>>;
 

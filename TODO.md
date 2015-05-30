@@ -6,6 +6,8 @@
 - [ ] Indirection
 - [ ] Handle Return Stack properly
 - [ ] Uppercase/Case insensitive standard words
+- [ ] Piping from Stdin
+- [ ] File input
 - [x] Refactor into modules
 - [x] Error handling
     - [ ] *Better* Error Handling

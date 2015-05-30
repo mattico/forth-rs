@@ -1,6 +1,9 @@
 use std::rc::Rc;
+use std::collections::VecDeque;
 
 use dictionary::Entry;
+
+pub type Statement = VecDeque<ForthCell>;
 
 pub type Int = i32;
 pub type Double = f64;

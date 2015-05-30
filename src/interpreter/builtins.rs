@@ -1,6 +1,5 @@
 use dictionary::{Dictionary, DictionaryExt, Entry};
-use statement::Statement;
-use types::{self, ForthCell, Int};
+use types::{self, ForthCell, Int, Statement};
 use error::{ForthResult, ForthError};
 use word::ForthWord;
 
@@ -141,7 +140,8 @@ pub fn insert_builtins(dict: &mut Dictionary) {
 
     entry!(dict, "branch", |interp| -> ForthResult<()> {
         interp.statement_index += 1;
-        if let ForthCell::Number(n) = *interp.statement.get(interp.statement_index).unwrap() {
+        let string = try!(interp.get_current().ok_or(ForthError::ExpectedNumber));
+        if let Ok(n) = string.parse::<Int>() {
             try!(interp.jump(n));
         } else {
             return Err(ForthError::ExpectedNumber);
@@ -152,14 +152,14 @@ pub fn insert_builtins(dict: &mut Dictionary) {
     entry!(dict, "?branch", |interp| -> ForthResult<()> {
         let x = try_pop!(interp);
         if x == types::TRUE {
-            interp.statement_index += 1;
-            if let ForthCell::Number(n) = *interp.get_current().unwrap() {
+            try!(interp.next());
+            let string = try!(interp.get_current().ok_or(ForthError::ExpectedNumber));
+            if let Ok(n) = string.parse::<Int>() {
                 try!(interp.jump(n));
             } else {
                 return Err(ForthError::ExpectedNumber);
             }
         }
-
         Ok(())
     });
 
@@ -181,20 +181,23 @@ pub fn insert_builtins(dict: &mut Dictionary) {
     });
 
     entry!(dict, ".", |interp| -> ForthResult<()> {
-        println!("{}", try_pop!(interp));
+        print!("{}", try_pop!(interp));
         Ok(())
     });
 
-    // entry!(dict, ":", |interp| -> ForthResult<()> {
-    //             let mut stmt = Statement::new();
-    //             interp.statement_index += 1;
-    //             let name = interp.get_current.unwrap();
-    //             while *interp.get_current.unwrap() != interp.dict.get(";").unwrap() {
-
-    //             }
-    //             interp.dict.insert_entry(name, stmt);
-    //             Ok(())
-    //         });
+    entry!(dict, ":", |interp| -> ForthResult<()> {
+        let mut stmt = Statement::new();
+        try!(interp.next());
+        let name = try!((*interp).get_current().ok_or(ForthError::WordNameNotFound));
+        try!(interp.next());
+        while let Some(w) = interp.get_current() {
+            if w == ";" { break; }
+            stmt.push_back(try!(interp.parse_word(w)));
+            try!(interp.next());
+        }
+        interp.dictionary.insert_entry(Entry::from_statement(name.as_str(), stmt));
+        Ok(())
+    });
 
     entry!(dict, ";", |_| -> ForthResult<()> {
         Err(ForthError::SemicolonOutsideOfWordDefinition) // Jeez

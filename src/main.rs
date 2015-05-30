@@ -14,9 +14,9 @@ fn main() {
         io::stdout().flush().ok().expect("Could not flush stdout");
         let mut line = String::new();
         stdin.read_line(&mut line).ok().expect("Unable to read from stdin");
-        match interp.exec(line.trim()) {
-            Err(e) => print!("{:?}", e),
-            Ok(_) => print!("ok"),
+        match interp.exec(line.trim().to_string()) {
+            Err(e) => println!("{:?}", e),
+            Ok(_) => print!("  ok"),
         }
     }
 }

@@ -1,7 +1,6 @@
 use interpreter::{Interpreter};
-use error::ForthResult;
-use statement::Statement;
-use types::ForthCell;
+use error::{ForthResult};
+use types::{ForthCell, Statement};
 
 pub type NativeFn = Box<Fn(&mut Interpreter) -> ForthResult<()>>;
 
@@ -11,6 +10,16 @@ pub enum ForthWord {
 }
 
 impl ForthWord {
+    pub fn parse(interp: &Interpreter, string: String) -> ForthResult<Statement> {
+        let mut stmt = Statement::new();
+
+        let mut words = string.split_whitespace();
+        while let Some(word) = words.next() {
+            stmt.push_back(try!(interp.parse_word(word.to_string())));
+        }
+        Ok(stmt)
+    }
+
     pub fn run(&self, interp: &mut Interpreter) -> ForthResult<()> {
         match *self {
             ForthWord::Native(ref f) => {
