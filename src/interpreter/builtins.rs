@@ -1,6 +1,6 @@
 use dictionary::{Dictionary, DictionaryExt, Entry};
 use statement::Statement;
-use types::{self, ForthCell};
+use types::{self, ForthCell, Int};
 use error::{ForthResult, ForthError};
 use word::ForthWord;
 
@@ -59,7 +59,7 @@ pub fn insert_builtins(dict: &mut Dictionary) {
 
     unary_entry!(dict, "negate", ::std::ops::Neg::neg);
     unary_entry!(dict, "not", ::std::ops::Not::not);
-    unary_entry!(dict, "abs", |x: i32| { x.abs() });
+    unary_entry!(dict, "abs", |x: Int| { x.abs() });
 
     binary_entry!(dict, "<", |x, y| { if x < y { types::TRUE } else { types::FALSE } });
     binary_entry!(dict, ">", |x, y| { if x > y { types::TRUE } else { types::FALSE } });
@@ -77,15 +77,15 @@ pub fn insert_builtins(dict: &mut Dictionary) {
     unary_entry!(dict, "2*", |x| { x * 2 });
 
     trinary_entry!(dict, "*/", |x, y, z| {
-        (x as i64 * y as i64 / z as i64) as i32
+        (x as i64 * y as i64 / z as i64) as Int
     });
 
     entry!(dict, "*/mod", |interp| -> ForthResult<()> {
         let z = try_pop!(interp);
         let y = try_pop!(interp);
         let x = try_pop!(interp);
-        interp.parameter_stack.push((x as i64 * y as i64 % z as i64) as i32);
-        interp.parameter_stack.push((x as i64 * y as i64 / z as i64) as i32);
+        interp.parameter_stack.push((x as i64 * y as i64 % z as i64) as Int);
+        interp.parameter_stack.push((x as i64 * y as i64 / z as i64) as Int);
         Ok(())
     });
 
