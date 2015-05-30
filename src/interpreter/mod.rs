@@ -96,59 +96,12 @@ impl Interpreter {
         while self.has_next() {
             try!(self.next());
         }
+
         Ok(())
     }
 
     pub fn exec(&mut self, string: &str) -> ForthResult<()> {
         try!(self.parse(string));
         self.run()
-
-        // let mut stmt = Statement::new();
-        // while let Some(word) = words.next() { match word {
-        //     "(" => while let Some(w) = words.next() { if w == ")" { break; } },
-        //     "\\" => while let Some(w) = words.next() { if w == "\n" { break; } },
-        //     ":" => {
-        //         let mut comp = Statement::new();
-        //         let name = match words.next() {
-        //             Some(w) => w,
-        //             None => return Err(ForthError::WordNameNotFound),
-        //         };
-        //         while let Some(w) = words.next() {
-        //             if w == ";" {
-        //                 self.dictionary.insert_entry(Entry::from_statement(name, comp));
-        //                 return Ok(());
-        //             }
-        //             match w.parse::<i32>() {
-        //                 Ok(n) => comp.push_back(ForthCell::Number(n)),
-        //                 Err(_) => comp.push_back(ForthCell::Word(.unwrap().clone())),
-        //             }
-        //         }
-        //         return Err(ForthError::UnterminatedWordDefinition);
-        //     },
-        //     _ => match word.parse::<i32>() {
-        //         Ok(n) => {
-        //             stmt.push_back(ForthCell::Number(n));
-        //         },
-        //         Err(_) => {
-        //             if let Some(elem) = self.dictionary.get(word) {
-        //                 stmt.push_back(ForthCell::Word(elem.clone()));
-        //             } else {
-        //                 return Err(ForthError::WordNotFound)
-        //             }
-        //         },
-        //     },
-
-        // }}
-
-        // match stmt.run(self) {
-        //     Err(e) => {
-        //         self.last_result = None;
-        //         Err(e)
-        //     },
-        //     Ok(s) => {
-        //         self.last_result = Some(s);
-        //         Ok(())
-        //     }
-        // }
     }
 }
